@@ -5,6 +5,9 @@
     android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:description="@string/service_description"
+    android:isAccessibilityTool="true"
     android:notificationTimeout="100" />
-<!-- Pas de packageNames : sur MIUI, ce filtre laisse le cache des fenêtres périmé
+<!-- isAccessibilityTool : depuis Android 14, les vues marquées « sensibles » sont cachées
+     aux services qui ne sont pas des outils d'accessibilité (seul le Play Store vérifie ce statut).
+     Pas de packageNames : sur MIUI, ce filtre laisse le cache des fenêtres périmé
      (rootInActiveWindow reste sur le launcher). Le filtrage est fait dans le code. -->

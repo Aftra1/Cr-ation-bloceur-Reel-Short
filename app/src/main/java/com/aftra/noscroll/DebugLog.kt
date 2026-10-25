@@ -21,6 +21,13 @@ object DebugStatus {
     @Volatile var lastScanNote: String? = null
     @Volatile var lastRootSource: String? = null
     @Volatile var canRetrieveContent: Boolean? = null
+    private val foreground = ArrayDeque<String>()
+
+    /** Dernières fenêtres passées au premier plan, toutes apps confondues. */
+    fun recordForeground(entry: String) = synchronized(foreground) {
+        foreground.addLast("${DebugLog.time(System.currentTimeMillis())} $entry")
+        while (foreground.size > 10) foreground.removeFirst()
+    }
 
     /** Le service est-il coché dans Réglages > Accessibilité ? */
     fun isEnabledInSettings(context: Context): Boolean {
@@ -46,6 +53,10 @@ object DebugStatus {
             appendLine(if (eventCount > 0) "$eventCount (dernier : $lastEventPackage à ${t(lastEventAt)})" else "AUCUN")
             append("Dernière détection : ")
             appendLine(if (lastDetectionAt > 0) "$lastDetection à ${t(lastDetectionAt)}" else "aucune")
+            synchronized(foreground) {
+                appendLine("Dernières fenêtres au premier plan :")
+                if (foreground.isEmpty()) appendLine("  aucune") else foreground.forEach { appendLine("  $it") }
+            }
             lastRootSource?.let { appendLine("Racine trouvée via : $it") }
             lastScanNote?.let { appendLine("Dernier scan ignoré : $it") }
         }

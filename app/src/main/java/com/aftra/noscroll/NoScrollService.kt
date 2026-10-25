@@ -2,6 +2,7 @@ package com.aftra.noscroll
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -36,6 +37,9 @@ class NoScrollService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            DebugStatus.recordForeground("${event.packageName}/${event.className}")
+        }
         val spec = Detectors.specFor(event.packageName) ?: return
 
         DebugStatus.eventCount++
@@ -88,6 +92,18 @@ class NoScrollService : AccessibilityService() {
         }
         if (fromWindows != null) return fromWindows to "windows"
 
+        // Fenêtres des autres écrans (affichages virtuels, fenêtres flottantes…).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val fromDisplays = try {
+                val all = windowsOnAllDisplays
+                (0 until all.size()).flatMap { all.valueAt(it) }
+                    .firstNotNullOfOrNull { w -> w.root?.takeIf { it.packageName?.toString() == pkg } }
+            } catch (e: RuntimeException) {
+                null
+            }
+            if (fromDisplays != null) return fromDisplays to "windowsOnAllDisplays"
+        }
+
         var node = lastEventSource?.takeIf { it.packageName?.toString() == pkg }
         while (true) node = node?.parent ?: break
         if (node != null) return node to "event.source"
@@ -97,9 +113,14 @@ class NoScrollService : AccessibilityService() {
     }
 
     private fun describeWindows(): String = try {
-        windows.joinToString(prefix = "[", postfix = "]") { w ->
+        val list = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val all = windowsOnAllDisplays
+            (0 until all.size()).flatMap { all.valueAt(it) }
+        } else windows
+        list.joinToString(prefix = "[", postfix = "]") { w ->
             val flags = (if (w.isActive) "A" else "") + (if (w.isFocused) "F" else "")
-            "${typeName(w.type)}:${w.root?.packageName ?: "root=null"}:${w.title ?: "-"}${if (flags.isEmpty()) "" else ":$flags"}"
+            val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) "d${w.displayId}:" else ""
+            "$display${typeName(w.type)}:${w.root?.packageName ?: "root=null"}:${w.title ?: "-"}:id${w.id}${if (flags.isEmpty()) "" else ":$flags"}"
         }
     } catch (e: RuntimeException) {
         "erreur ${e.javaClass.simpleName}"
@@ -143,7 +164,8 @@ class NoScrollService : AccessibilityService() {
                 .append(" ").append(AccessibilityEvent.eventTypeToString(event.eventType)).append('\n')
             append("package=").append(spec.packageName)
                 .append(" fenêtre=").append(windowClasses[spec.packageName] ?: "?")
-                .append(" eventClass=").append(event.className).append('\n')
+                .append(" eventClass=").append(event.className)
+                .append(" windowId=").append(event.windowId).append('\n')
             append("racine : ").append(how).append('\n')
             if (root != null) {
                 try {
