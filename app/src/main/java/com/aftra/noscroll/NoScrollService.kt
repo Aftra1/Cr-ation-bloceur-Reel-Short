@@ -21,6 +21,7 @@ class NoScrollService : AccessibilityService() {
     private var overlay: BlockOverlay? = null
     private var overlaySpec: Detectors.Spec? = null
     private var leaveGraceUntil = 0L
+    private var pendingSpec: Detectors.Spec? = null
     private var lastDump = 0L
     private var lastEventSource: AccessibilityNodeInfo? = null
     private val windowClasses = mutableMapOf<String, String>()
@@ -67,9 +68,35 @@ class NoScrollService : AccessibilityService() {
         lastEventSource = event.source
         if (Prefs.debugMode(this)) dump(event, spec)
 
-        // Les événements arrivent en rafale : on limite les parcours d'arbre.
+        // Les événements arrivent en rafale : on limite les parcours d'arbre, mais on
+        // planifie un scan de rattrapage pour ne jamais rater l'état final de l'écran
+        // (une vidéo qui joue n'envoie plus d'événements une fois l'écran stabilisé).
         val now = SystemClock.uptimeMillis()
-        if (now - lastScan < SCAN_INTERVAL_MS) return
+        if (now - lastScan < SCAN_INTERVAL_MS) {
+            scheduleScan(spec, lastScan + SCAN_INTERVAL_MS - now)
+            return
+        }
+        scanAndAct(spec)
+    }
+
+    private fun scheduleScan(spec: Detectors.Spec, delayMs: Long) {
+        handler.removeCallbacks(pendingScan)
+        pendingSpec = spec
+        handler.postDelayed(pendingScan, delayMs)
+    }
+
+    private val pendingScan = Runnable {
+        val spec = pendingSpec ?: return@Runnable
+        try {
+            scanAndAct(spec)
+        } catch (e: RuntimeException) {
+            reportError("scan différé", e)
+        }
+    }
+
+    private fun scanAndAct(spec: Detectors.Spec) {
+        handler.removeCallbacks(pendingScan)
+        val now = SystemClock.uptimeMillis()
         lastScan = now
 
         val detection = scan(spec) ?: return
@@ -84,8 +111,9 @@ class NoScrollService : AccessibilityService() {
         }
 
         if (detection.matched && isBlockingEnabled(spec) && isScreenOn()) {
-            // Juste après « Quitter », on laisse à l'app le temps de changer d'écran.
-            if (now >= leaveGraceUntil) showOverlay(spec)
+            // Juste après « Quitter », on laisse à l'app le temps de changer d'écran,
+            // puis on revérifie (au cas où l'utilisateur est retourné sur Reels entre-temps).
+            if (now >= leaveGraceUntil) showOverlay(spec) else scheduleScan(spec, leaveGraceUntil - now)
         } else {
             hideOverlay()
         }
