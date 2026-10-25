@@ -24,4 +24,5 @@ Tous les identifiants sont dans `app/src/main/java/com/aftra/noscroll/Detectors.
 
 ## Fiabilité
 - Score de détection combiné (id du lecteur et onglet « selected » = 2, simple mot = 1, seuil = 2).
-- Cooldown 1 s entre blocages, pas de blocage écran éteint, anti-boucle (4 blocages en 5 s ⇒ pause 10 s).
+- Au blocage : un écran « Ne perds pas ton temps » recouvre les Reels/Shorts et le son média est coupé.
+  Il disparaît (et le son revient) dès qu'on quitte Reels/Shorts ; le bouton « Quitter » fait retour puis Accueil.

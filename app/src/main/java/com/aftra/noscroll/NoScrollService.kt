@@ -11,21 +11,20 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
-import android.widget.Toast
 
 class NoScrollService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var lastScan = 0L
-    private var lastBlock = 0L
     private var lastState: String? = null
-    private val recentBlocks = ArrayDeque<Long>()
-    private var loopPausedUntil = 0L
+    private lateinit var overlay: BlockOverlay
+    private var overlaySpec: Detectors.Spec? = null
     private var lastDump = 0L
     private var lastEventSource: AccessibilityNodeInfo? = null
     private val windowClasses = mutableMapOf<String, String>()
 
     override fun onServiceConnected() {
+        overlay = BlockOverlay(this) { leave() }
         Log.i(Detectors.TAG, "Service connecté")
         DebugStatus.connectedAt = System.currentTimeMillis()
         Prefs.setServiceConnectedAt(this, DebugStatus.connectedAt)
@@ -40,7 +39,14 @@ class NoScrollService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             DebugStatus.recordForeground("${event.packageName}/${event.className}")
         }
-        val spec = Detectors.specFor(event.packageName) ?: return
+        val spec = Detectors.specFor(event.packageName)
+        if (spec == null) {
+            // L'utilisateur est passé à une autre app : on retire le cache-écran.
+            if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+                event.packageName?.toString() !in IGNORED_PACKAGES
+            ) hideOverlay()
+            return
+        }
 
         DebugStatus.eventCount++
         DebugStatus.lastEventAt = System.currentTimeMillis()
@@ -67,12 +73,8 @@ class NoScrollService : AccessibilityService() {
             Log.i(Detectors.TAG, "[${spec.packageName}] $detection")
         }
 
-        if (detection.matched && isBlockingEnabled(spec) && now - lastBlock >= COOLDOWN_MS &&
-            now >= loopPausedUntil && isScreenOn() && !tripsLoopGuard(now)
-        ) {
-            lastBlock = now
-            block(spec)
-        }
+        if (detection.matched && isBlockingEnabled(spec) && isScreenOn()) showOverlay(spec)
+        else if (!detection.matched || !isBlockingEnabled(spec)) hideOverlay()
     }
 
     /**
@@ -189,25 +191,26 @@ class NoScrollService : AccessibilityService() {
 
     private fun isScreenOn() = getSystemService(PowerManager::class.java).isInteractive
 
-    /** Anti-boucle : trop de blocages en peu de temps (le clic Accueil ramène sur Reels ?) => pause 10 s. */
-    private fun tripsLoopGuard(now: Long): Boolean {
-        while (recentBlocks.isNotEmpty() && now - recentBlocks.first() > LOOP_WINDOW_MS) recentBlocks.removeFirst()
-        if (recentBlocks.size < LOOP_MAX_BLOCKS) return false
-        loopPausedUntil = now + LOOP_PAUSE_MS
-        recentBlocks.clear()
-        Log.w(Detectors.TAG, "Anti-boucle : blocage suspendu 10 s")
-        return true
+    private fun showOverlay(spec: Detectors.Spec) {
+        if (overlay.isShown) return
+        Log.i(Detectors.TAG, "Blocage : ${spec.kind}, cache-écran + son coupé")
+        overlaySpec = spec
+        Prefs.recordBlock(this)
+        overlay.show(spec.kind)
     }
 
-    private fun block(spec: Detectors.Spec) {
-        val label = if (spec.kind == Detectors.Kind.REELS) "Reels bloqués" else "Shorts bloqués"
-        Log.i(Detectors.TAG, "Blocage : $label, BACK")
-        recentBlocks.addLast(SystemClock.uptimeMillis())
-        Prefs.recordBlock(this)
-        Toast.makeText(this, label, Toast.LENGTH_SHORT).show()
-        performGlobalAction(GLOBAL_ACTION_BACK)
+    private fun hideOverlay() {
+        if (!::overlay.isInitialized || !overlay.isShown) return
+        Log.i(Detectors.TAG, "Cache-écran retiré")
+        overlay.hide()
+        overlaySpec = null
+    }
 
-        // Si le BACK n'a pas suffi, on bascule sur l'onglet Accueil.
+    /** Bouton « Quitter » du cache-écran : BACK, puis onglet Accueil si on est toujours sur Reels/Shorts. */
+    private fun leave() {
+        val spec = overlaySpec ?: return hideOverlay()
+        hideOverlay()
+        performGlobalAction(GLOBAL_ACTION_BACK)
         handler.postDelayed({
             if (scan(spec)?.matched != true) return@postDelayed
             val home = findRoot(spec).first?.let { findHomeTab(it, spec) }
@@ -227,16 +230,16 @@ class NoScrollService : AccessibilityService() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        hideOverlay()
         super.onDestroy()
     }
 
     private companion object {
         const val SCAN_INTERVAL_MS = 150L
         const val DUMP_INTERVAL_MS = 500L
-        const val COOLDOWN_MS = 1000L
         const val RECHECK_DELAY_MS = 500L
-        const val LOOP_WINDOW_MS = 5000L
-        const val LOOP_MAX_BLOCKS = 4
-        const val LOOP_PAUSE_MS = 10_000L
+
+        /** Fenêtres qui ne signifient pas « l'utilisateur a quitté l'app » (volet, notre propre cache-écran). */
+        val IGNORED_PACKAGES = setOf("com.android.systemui", "com.aftra.noscroll", null)
     }
 }
