@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">NoScroll</string>
+    <string name="service_description">Bloque les Reels Instagram et les Shorts YouTube.</string>
+</resources>
