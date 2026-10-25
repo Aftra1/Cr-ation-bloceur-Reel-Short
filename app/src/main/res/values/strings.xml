@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">NoScroll</string>
     <string name="service_description">Bloque les Reels Instagram et les Shorts YouTube.</string>
+    <string name="status_enabled">Service activé ✅</string>
+    <string name="status_disabled">Service désactivé ❌</string>
+    <string name="open_accessibility_settings">Ouvrir les réglages d\'accessibilité</string>
+    <string name="block_reels">Bloquer les Reels (Instagram)</string>
+    <string name="block_shorts">Bloquer les Shorts (YouTube)</string>
 </resources>
