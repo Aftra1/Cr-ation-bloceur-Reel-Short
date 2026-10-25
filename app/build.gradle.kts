@@ -11,8 +11,20 @@ android {
         applicationId = "com.aftra.noscroll"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // Numéro de build CI : chaque APK publié est une version plus récente.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1"
+    }
+
+    // Clé debug fixe versionnée : tous les APK (CI ou local) ont la même signature,
+    // donc une nouvelle version s'installe par-dessus l'ancienne.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
