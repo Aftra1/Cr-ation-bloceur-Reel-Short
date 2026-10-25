@@ -3,6 +3,7 @@
     <string name="service_description">Bloque les Reels Instagram et les Shorts YouTube.</string>
     <string name="status_enabled">Service activé ✅</string>
     <string name="status_disabled">Service désactivé ❌</string>
+    <string name="status_stopped">Service arrêté par le système ⚠️\nDésactive puis réactive NoScroll dans les réglages d\'accessibilité. Pour éviter ça : ne balaie pas NoScroll dans les apps récentes, et autorise le démarrage automatique.</string>
     <string name="open_accessibility_settings">Ouvrir les réglages d\'accessibilité</string>
     <string name="block_reels">Bloquer les Reels (Instagram)</string>
     <string name="block_shorts">Bloquer les Shorts (YouTube)</string>

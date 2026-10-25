@@ -41,11 +41,19 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         refresh()
+        // Le système peut reconnecter le service juste après le démarrage de l'app.
+        binding.root.postDelayed({ if (!isFinishing) refresh() }, 1500)
     }
 
     private fun refresh() {
+        // Coché dans les réglages mais pas lancé : typiquement MIUI qui a tué l'app
+        // (balayage dans les apps récentes). Android ne le relance pas tout seul.
         binding.statusText.setText(
-            if (DebugStatus.isEnabledInSettings(this)) R.string.status_enabled else R.string.status_disabled
+            when {
+                !DebugStatus.isEnabledInSettings(this) -> R.string.status_disabled
+                DebugStatus.connectedAt == 0L -> R.string.status_stopped
+                else -> R.string.status_enabled
+            }
         )
 
         val paused = Prefs.isPaused(this)
