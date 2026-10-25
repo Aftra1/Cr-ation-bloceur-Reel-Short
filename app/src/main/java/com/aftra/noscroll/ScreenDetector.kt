@@ -48,3 +48,29 @@ object ScreenDetector {
         return Detection(spec, score, signals.toList())
     }
 }
+
+/** Trouve l'onglet Accueil (ou son parent cliquable) pour le blocage. */
+fun findHomeTab(root: AccessibilityNodeInfo, spec: Detectors.Spec): AccessibilityNodeInfo? {
+    var visited = 0
+
+    fun visit(node: AccessibilityNodeInfo, depth: Int): AccessibilityNodeInfo? {
+        if (depth > Detectors.MAX_DEPTH || visited++ > Detectors.MAX_NODES) return null
+
+        val id = node.viewIdResourceName?.substringAfter(":id/")
+        val desc = node.contentDescription?.toString()?.trim()?.lowercase()
+        val text = node.text?.toString()?.trim()?.lowercase()
+        val isHome = (id != null && id in spec.homeTabIds) ||
+            spec.homeTabLabels.any { desc?.startsWith(it) == true || text == it }
+        if (isHome) return node
+
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            visit(child, depth + 1)?.let { return it }
+        }
+        return null
+    }
+
+    var node = visit(root, 0)
+    while (node != null && !node.isClickable) node = node.parent
+    return node
+}
