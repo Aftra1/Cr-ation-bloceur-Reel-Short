@@ -37,13 +37,14 @@ class BlockOverlay(private val service: AccessibilityService, private val onLeav
         )
         windowManager.addView(v, params)
         view = v
-        mute()
+        // Couper le son ne doit jamais empêcher l'affichage (ex. mode Ne pas déranger).
+        runCatching { mute() }
     }
 
     fun hide() {
         view?.let { runCatching { windowManager.removeView(it) } }
         view = null
-        unmute()
+        runCatching { unmute() }
     }
 
     private fun mute() {

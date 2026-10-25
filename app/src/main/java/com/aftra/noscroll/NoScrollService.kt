@@ -11,20 +11,20 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import android.widget.Toast
 
 class NoScrollService : AccessibilityService() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var lastScan = 0L
     private var lastState: String? = null
-    private lateinit var overlay: BlockOverlay
+    private var overlay: BlockOverlay? = null
     private var overlaySpec: Detectors.Spec? = null
     private var lastDump = 0L
     private var lastEventSource: AccessibilityNodeInfo? = null
     private val windowClasses = mutableMapOf<String, String>()
 
     override fun onServiceConnected() {
-        overlay = BlockOverlay(this) { leave() }
         Log.i(Detectors.TAG, "Service connecté")
         DebugStatus.connectedAt = System.currentTimeMillis()
         Prefs.setServiceConnectedAt(this, DebugStatus.connectedAt)
@@ -36,6 +36,15 @@ class NoScrollService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        // Une exception ici tuerait le service (et MIUI le laisse ensuite inactif) : on la journalise.
+        try {
+            handleEvent(event)
+        } catch (e: RuntimeException) {
+            reportError("événement", e)
+        }
+    }
+
+    private fun handleEvent(event: AccessibilityEvent) {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             DebugStatus.recordForeground("${event.packageName}/${event.className}")
         }
@@ -192,18 +201,33 @@ class NoScrollService : AccessibilityService() {
     private fun isScreenOn() = getSystemService(PowerManager::class.java).isInteractive
 
     private fun showOverlay(spec: Detectors.Spec) {
-        if (overlay.isShown) return
+        val o = overlay ?: BlockOverlay(this) { leave() }.also { overlay = it }
+        if (o.isShown) return
         Log.i(Detectors.TAG, "Blocage : ${spec.kind}, cache-écran + son coupé")
-        overlaySpec = spec
         Prefs.recordBlock(this)
-        overlay.show(spec.kind)
+        try {
+            o.show(spec.kind)
+            overlaySpec = spec
+        } catch (e: RuntimeException) {
+            // Cache-écran refusé (permission MIUI ?) : on revient à l'ancien blocage.
+            reportError("cache-écran", e)
+            Toast.makeText(this, R.string.overlay_title, Toast.LENGTH_LONG).show()
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
     }
 
     private fun hideOverlay() {
-        if (!::overlay.isInitialized || !overlay.isShown) return
+        val o = overlay ?: return
+        if (!o.isShown) return
         Log.i(Detectors.TAG, "Cache-écran retiré")
-        overlay.hide()
+        o.hide()
         overlaySpec = null
+    }
+
+    private fun reportError(where: String, e: RuntimeException) {
+        Log.e(Detectors.TAG, "Erreur ($where)", e)
+        DebugStatus.lastError = "$where : $e"
+        DebugLog.append(this, "=== ${DebugLog.time(System.currentTimeMillis())} ERREUR ($where)\n${e.stackTraceToString()}\n")
     }
 
     /** Bouton « Quitter » du cache-écran : BACK, puis onglet Accueil si on est toujours sur Reels/Shorts. */

@@ -21,6 +21,7 @@ object DebugStatus {
     @Volatile var lastScanNote: String? = null
     @Volatile var lastRootSource: String? = null
     @Volatile var canRetrieveContent: Boolean? = null
+    @Volatile var lastError: String? = null
     private val foreground = ArrayDeque<String>()
 
     /** Dernières fenêtres passées au premier plan, toutes apps confondues. */
@@ -57,6 +58,7 @@ object DebugStatus {
                 appendLine("Dernières fenêtres au premier plan :")
                 if (foreground.isEmpty()) appendLine("  aucune") else foreground.forEach { appendLine("  $it") }
             }
+            lastError?.let { appendLine("DERNIÈRE ERREUR : $it") }
             lastRootSource?.let { appendLine("Racine trouvée via : $it") }
             lastScanNote?.let { appendLine("Dernier scan ignoré : $it") }
         }
