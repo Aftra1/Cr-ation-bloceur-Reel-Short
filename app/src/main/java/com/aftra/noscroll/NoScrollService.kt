@@ -81,8 +81,7 @@ class NoScrollService : AccessibilityService() {
         rootInActiveWindow?.let { if (it.packageName?.toString() == pkg) return it to "rootInActiveWindow" }
 
         val fromWindows = try {
-            windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
-                .sortedByDescending { it.isActive || it.isFocused }
+            windows.sortedByDescending { it.isActive || it.isFocused }
                 .firstNotNullOfOrNull { w -> w.root?.takeIf { it.packageName?.toString() == pkg } }
         } catch (e: RuntimeException) {
             null
@@ -94,7 +93,25 @@ class NoScrollService : AccessibilityService() {
         if (node != null) return node to "event.source"
 
         return null to "aucune racine (rootInActiveWindow=${rootInActiveWindow?.packageName}, " +
-            "fenêtres=${runCatching { windows.size }.getOrNull()}, source=${lastEventSource != null})"
+            "source=${lastEventSource != null}, fenêtres=${describeWindows()})"
+    }
+
+    private fun describeWindows(): String = try {
+        windows.joinToString(prefix = "[", postfix = "]") { w ->
+            val flags = (if (w.isActive) "A" else "") + (if (w.isFocused) "F" else "")
+            "${typeName(w.type)}:${w.root?.packageName ?: "root=null"}:${w.title ?: "-"}${if (flags.isEmpty()) "" else ":$flags"}"
+        }
+    } catch (e: RuntimeException) {
+        "erreur ${e.javaClass.simpleName}"
+    }
+
+    private fun typeName(type: Int) = when (type) {
+        AccessibilityWindowInfo.TYPE_APPLICATION -> "app"
+        AccessibilityWindowInfo.TYPE_INPUT_METHOD -> "clavier"
+        AccessibilityWindowInfo.TYPE_SYSTEM -> "système"
+        AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY -> "overlay"
+        AccessibilityWindowInfo.TYPE_SPLIT_SCREEN_DIVIDER -> "split"
+        else -> "type$type"
     }
 
     private fun scan(spec: Detectors.Spec): Detection? = try {
