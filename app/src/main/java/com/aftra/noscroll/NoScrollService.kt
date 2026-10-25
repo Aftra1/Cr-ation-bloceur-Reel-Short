@@ -20,6 +20,7 @@ class NoScrollService : AccessibilityService() {
     private var lastState: String? = null
     private var overlay: BlockOverlay? = null
     private var overlaySpec: Detectors.Spec? = null
+    private var leaveGraceUntil = 0L
     private var lastDump = 0L
     private var lastEventSource: AccessibilityNodeInfo? = null
     private val windowClasses = mutableMapOf<String, String>()
@@ -82,8 +83,12 @@ class NoScrollService : AccessibilityService() {
             Log.i(Detectors.TAG, "[${spec.packageName}] $detection")
         }
 
-        if (detection.matched && isBlockingEnabled(spec) && isScreenOn()) showOverlay(spec)
-        else if (!detection.matched || !isBlockingEnabled(spec)) hideOverlay()
+        if (detection.matched && isBlockingEnabled(spec) && isScreenOn()) {
+            // Juste après « Quitter », on laisse à l'app le temps de changer d'écran.
+            if (now >= leaveGraceUntil) showOverlay(spec)
+        } else {
+            hideOverlay()
+        }
     }
 
     /**
@@ -234,6 +239,7 @@ class NoScrollService : AccessibilityService() {
     private fun leave() {
         val spec = overlaySpec ?: return hideOverlay()
         hideOverlay()
+        leaveGraceUntil = SystemClock.uptimeMillis() + LEAVE_GRACE_MS
         performGlobalAction(GLOBAL_ACTION_BACK)
         handler.postDelayed({
             if (scan(spec)?.matched != true) return@postDelayed
@@ -262,6 +268,7 @@ class NoScrollService : AccessibilityService() {
         const val SCAN_INTERVAL_MS = 150L
         const val DUMP_INTERVAL_MS = 500L
         const val RECHECK_DELAY_MS = 500L
+        const val LEAVE_GRACE_MS = 1500L
 
         /** Fenêtres qui ne signifient pas « l'utilisateur a quitté l'app » (volet, notre propre cache-écran). */
         val IGNORED_PACKAGES = setOf("com.android.systemui", "com.aftra.noscroll", null)

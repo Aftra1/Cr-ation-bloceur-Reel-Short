@@ -22,6 +22,9 @@ object ScreenDetector {
 
         fun visit(node: AccessibilityNodeInfo, depth: Int) {
             if (depth > Detectors.MAX_DEPTH || visited++ > Detectors.MAX_NODES) return
+            // Instagram garde l'onglet Reels chargé hors écran après l'avoir quitté :
+            // sans ce filtre, ses vues seraient détectées jusqu'à la fermeture de l'app.
+            if (!node.isVisibleToUser) return
 
             val id = node.viewIdResourceName?.substringAfter(":id/")
             val text = node.text?.toString()?.trim()?.lowercase()
