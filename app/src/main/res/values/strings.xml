@@ -6,4 +6,8 @@
     <string name="open_accessibility_settings">Ouvrir les réglages d\'accessibilité</string>
     <string name="block_reels">Bloquer les Reels (Instagram)</string>
     <string name="block_shorts">Bloquer les Shorts (YouTube)</string>
+    <string name="pause_button">Pause 15 min</string>
+    <string name="resume_button">Reprendre le blocage</string>
+    <string name="paused_until">Blocage en pause jusqu\'à %1$s</string>
+    <string name="stats">Blocages : %1$d aujourd\'hui, %2$d au total</string>
 </resources>
