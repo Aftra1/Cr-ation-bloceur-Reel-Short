@@ -1,6 +1,7 @@
 package com.aftra.noscroll
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -8,6 +9,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import android.widget.Toast
 
 class NoScrollService : AccessibilityService() {
@@ -19,12 +21,16 @@ class NoScrollService : AccessibilityService() {
     private val recentBlocks = ArrayDeque<Long>()
     private var loopPausedUntil = 0L
     private var lastDump = 0L
+    private var lastEventSource: AccessibilityNodeInfo? = null
     private val windowClasses = mutableMapOf<String, String>()
 
     override fun onServiceConnected() {
         Log.i(Detectors.TAG, "Service connecté")
         DebugStatus.connectedAt = System.currentTimeMillis()
         Prefs.setServiceConnectedAt(this, DebugStatus.connectedAt)
+        val caps = serviceInfo?.capabilities ?: 0
+        DebugStatus.canRetrieveContent =
+            caps and AccessibilityServiceInfo.CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT != 0
         if (Prefs.debugMode(this)) DebugLog.append(this, "=== ${DebugLog.time(DebugStatus.connectedAt)} service connecté\n")
     }
 
@@ -38,6 +44,7 @@ class NoScrollService : AccessibilityService() {
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && event.className != null) {
             windowClasses[spec.packageName] = event.className.toString()
         }
+        lastEventSource = event.source
         if (Prefs.debugMode(this)) dump(event, spec)
 
         // Les événements arrivent en rafale : on limite les parcours d'arbre.
@@ -64,13 +71,41 @@ class NoScrollService : AccessibilityService() {
         }
     }
 
+    /**
+     * Racine de l'arbre de l'app ciblée. rootInActiveWindow est souvent null sur certains
+     * téléphones : on essaie ensuite la liste des fenêtres, puis la source de l'événement.
+     * Renvoie la racine et la méthode qui a marché (ou la raison de l'échec).
+     */
+    private fun findRoot(spec: Detectors.Spec): Pair<AccessibilityNodeInfo?, String> {
+        val pkg = spec.packageName
+        rootInActiveWindow?.let { if (it.packageName?.toString() == pkg) return it to "rootInActiveWindow" }
+
+        val fromWindows = try {
+            windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+                .sortedByDescending { it.isActive || it.isFocused }
+                .firstNotNullOfOrNull { w -> w.root?.takeIf { it.packageName?.toString() == pkg } }
+        } catch (e: RuntimeException) {
+            null
+        }
+        if (fromWindows != null) return fromWindows to "windows"
+
+        var node = lastEventSource?.takeIf { it.packageName?.toString() == pkg }
+        while (true) node = node?.parent ?: break
+        if (node != null) return node to "event.source"
+
+        return null to "aucune racine (rootInActiveWindow=${rootInActiveWindow?.packageName}, " +
+            "fenêtres=${runCatching { windows.size }.getOrNull()}, source=${lastEventSource != null})"
+    }
+
     private fun scan(spec: Detectors.Spec): Detection? = try {
-        val root = rootInActiveWindow
-        when {
-            root == null -> null.also { DebugStatus.lastScanNote = "rootInActiveWindow = null" }
-            root.packageName?.toString() != spec.packageName ->
-                null.also { DebugStatus.lastScanNote = "fenêtre active = ${root.packageName}" }
-            else -> ScreenDetector.detect(root, spec)
+        val (root, how) = findRoot(spec)
+        if (root == null) {
+            DebugStatus.lastScanNote = how
+            null
+        } else {
+            DebugStatus.lastRootSource = how
+            DebugStatus.lastScanNote = null
+            ScreenDetector.detect(root, spec)
         }
     } catch (e: RuntimeException) {
         // Nœud périmé pendant le parcours : on ignore ce scan.
@@ -85,18 +120,16 @@ class NoScrollService : AccessibilityService() {
         if (now - lastDump < DUMP_INTERVAL_MS) return
         lastDump = now
 
-        val root = rootInActiveWindow
+        val (root, how) = findRoot(spec)
         val text = buildString {
             append("=== ").append(DebugLog.time(System.currentTimeMillis()))
                 .append(" ").append(AccessibilityEvent.eventTypeToString(event.eventType)).append('\n')
             append("package=").append(spec.packageName)
                 .append(" fenêtre=").append(windowClasses[spec.packageName] ?: "?")
                 .append(" eventClass=").append(event.className).append('\n')
-            when {
-                root == null -> append("rootInActiveWindow = null\n")
-                root.packageName?.toString() != spec.packageName ->
-                    append("fenêtre active d'un autre package : ").append(root.packageName).append('\n')
-                else -> try {
+            append("racine : ").append(how).append('\n')
+            if (root != null) {
+                try {
                     append("détection : ").append(ScreenDetector.detect(root, spec)).append('\n')
                     append(DebugLog.dumpNodes(root))
                 } catch (e: RuntimeException) {
@@ -138,7 +171,7 @@ class NoScrollService : AccessibilityService() {
         // Si le BACK n'a pas suffi, on bascule sur l'onglet Accueil.
         handler.postDelayed({
             if (scan(spec)?.matched != true) return@postDelayed
-            val home = rootInActiveWindow?.let { findHomeTab(it, spec) }
+            val home = findRoot(spec).first?.let { findHomeTab(it, spec) }
             Log.i(Detectors.TAG, "Toujours sur ${spec.kind} : clic Accueil (${if (home != null) "trouvé" else "introuvable"})")
             home?.performAction(AccessibilityNodeInfo.ACTION_CLICK)
         }, RECHECK_DELAY_MS)

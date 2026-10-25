@@ -19,6 +19,8 @@ object DebugStatus {
     @Volatile var lastDetection: String? = null
     @Volatile var lastDetectionAt = 0L
     @Volatile var lastScanNote: String? = null
+    @Volatile var lastRootSource: String? = null
+    @Volatile var canRetrieveContent: Boolean? = null
 
     /** Le service est-il coché dans Réglages > Accessibilité ? */
     fun isEnabledInSettings(context: Context): Boolean {
@@ -37,12 +39,14 @@ object DebugStatus {
             appendLine(if (isEnabledInSettings(context)) "oui" else "NON")
             append("Service connecté : ")
             appendLine(if (connectedAt > 0) "oui (${t(connectedAt)})" else "non (depuis le lancement de l'app)")
+            canRetrieveContent?.let { appendLine("Droit de lire le contenu des fenêtres : ${if (it) "oui" else "NON"}") }
             appendLine("Dernière connexion du service : ${day(Prefs.serviceConnectedAt(context))}")
             appendLine("Dernière déconnexion du service : ${day(Prefs.serviceUnboundAt(context))}")
             append("Événements Instagram/YouTube reçus : ")
             appendLine(if (eventCount > 0) "$eventCount (dernier : $lastEventPackage à ${t(lastEventAt)})" else "AUCUN")
             append("Dernière détection : ")
             appendLine(if (lastDetectionAt > 0) "$lastDetection à ${t(lastDetectionAt)}" else "aucune")
+            lastRootSource?.let { appendLine("Racine trouvée via : $it") }
             lastScanNote?.let { appendLine("Dernier scan ignoré : $it") }
         }
     }
