@@ -35,7 +35,7 @@ class LogActivity : AppCompatActivity() {
     }
 
     private fun refresh() {
-        binding.headerText.text = DebugStatus.header()
+        binding.headerText.text = DebugStatus.header(this)
         binding.logText.text = DebugLog.read(this, MAX_SHOWN_CHARS).ifEmpty { getString(R.string.log_empty) }
         binding.scroll.post { binding.scroll.fullScroll(android.view.View.FOCUS_DOWN) }
     }

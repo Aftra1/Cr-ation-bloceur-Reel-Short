@@ -24,6 +24,7 @@ class NoScrollService : AccessibilityService() {
     override fun onServiceConnected() {
         Log.i(Detectors.TAG, "Service connecté")
         DebugStatus.connectedAt = System.currentTimeMillis()
+        Prefs.setServiceConnectedAt(this, DebugStatus.connectedAt)
         if (Prefs.debugMode(this)) DebugLog.append(this, "=== ${DebugLog.time(DebugStatus.connectedAt)} service connecté\n")
     }
 
@@ -147,6 +148,8 @@ class NoScrollService : AccessibilityService() {
 
     override fun onUnbind(intent: android.content.Intent?): Boolean {
         Log.i(Detectors.TAG, "Service déconnecté")
+        DebugStatus.connectedAt = 0L
+        Prefs.setServiceUnboundAt(this, System.currentTimeMillis())
         return super.onUnbind(intent)
     }
 

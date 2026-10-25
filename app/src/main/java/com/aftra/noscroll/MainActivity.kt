@@ -1,6 +1,5 @@
 package com.aftra.noscroll
 
-import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -46,7 +45,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun refresh() {
         binding.statusText.setText(
-            if (isServiceEnabled()) R.string.status_enabled else R.string.status_disabled
+            if (DebugStatus.isEnabledInSettings(this)) R.string.status_enabled else R.string.status_disabled
         )
 
         val paused = Prefs.isPaused(this)
@@ -56,13 +55,5 @@ class MainActivity : AppCompatActivity() {
         } else ""
 
         binding.statsText.text = getString(R.string.stats, Prefs.blocksToday(this), Prefs.blocksTotal(this))
-    }
-
-    private fun isServiceEnabled(): Boolean {
-        val enabled = Settings.Secure.getString(
-            contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        ) ?: return false
-        val me = ComponentName(this, NoScrollService::class.java)
-        return enabled.split(':').any { ComponentName.unflattenFromString(it) == me }
     }
 }

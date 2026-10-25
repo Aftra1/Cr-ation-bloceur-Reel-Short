@@ -1,6 +1,8 @@
 package com.aftra.noscroll
 
+import android.content.ComponentName
 import android.content.Context
+import android.provider.Settings
 import android.view.accessibility.AccessibilityNodeInfo
 import java.io.File
 import java.text.SimpleDateFormat
@@ -18,11 +20,25 @@ object DebugStatus {
     @Volatile var lastDetectionAt = 0L
     @Volatile var lastScanNote: String? = null
 
-    fun header(): String {
+    /** Le service est-il coché dans Réglages > Accessibilité ? */
+    fun isEnabledInSettings(context: Context): Boolean {
+        val enabled = Settings.Secure.getString(
+            context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        val me = ComponentName(context, NoScrollService::class.java)
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == me }
+    }
+
+    fun header(context: Context): String {
         fun t(ms: Long) = DebugLog.time(ms)
+        fun day(ms: Long) = if (ms > 0) java.text.DateFormat.getDateTimeInstance().format(Date(ms)) else "jamais"
         return buildString {
+            append("Activé dans Réglages > Accessibilité : ")
+            appendLine(if (isEnabledInSettings(context)) "oui" else "NON")
             append("Service connecté : ")
             appendLine(if (connectedAt > 0) "oui (${t(connectedAt)})" else "non (depuis le lancement de l'app)")
+            appendLine("Dernière connexion du service : ${day(Prefs.serviceConnectedAt(context))}")
+            appendLine("Dernière déconnexion du service : ${day(Prefs.serviceUnboundAt(context))}")
             append("Événements Instagram/YouTube reçus : ")
             appendLine(if (eventCount > 0) "$eventCount (dernier : $lastEventPackage à ${t(lastEventAt)})" else "AUCUN")
             append("Dernière détection : ")
@@ -34,7 +50,7 @@ object DebugStatus {
 
 /** Journal debug dans un fichier interne, écrit hors du thread principal. */
 object DebugLog {
-    private const val FILE = "debug_log.txt"
+    const val FILE = "debug_log.txt"
     private const val MAX_BYTES = 1_000_000L
     private const val KEEP_CHARS = 500_000
     const val MAX_NODES = 200

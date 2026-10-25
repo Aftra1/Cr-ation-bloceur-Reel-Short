@@ -14,6 +14,8 @@ object Prefs {
     private const val KEY_DAY = "blocks_day"
     private const val KEY_DAY_COUNT = "blocks_day_count"
     private const val KEY_DEBUG = "debug_mode"
+    private const val KEY_CONNECTED_AT = "service_connected_at"
+    private const val KEY_UNBOUND_AT = "service_unbound_at"
 
     const val PAUSE_MINUTES = 15
 
@@ -33,6 +35,15 @@ object Prefs {
 
     fun setDebugMode(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean(KEY_DEBUG, value).apply()
+
+    fun serviceConnectedAt(context: Context) = prefs(context).getLong(KEY_CONNECTED_AT, 0L)
+    fun serviceUnboundAt(context: Context) = prefs(context).getLong(KEY_UNBOUND_AT, 0L)
+
+    fun setServiceConnectedAt(context: Context, ms: Long) =
+        prefs(context).edit().putLong(KEY_CONNECTED_AT, ms).apply()
+
+    fun setServiceUnboundAt(context: Context, ms: Long) =
+        prefs(context).edit().putLong(KEY_UNBOUND_AT, ms).apply()
 
     // Pause temporaire
     fun pausedUntil(context: Context) = prefs(context).getLong(KEY_PAUSED_UNTIL, 0L)
