@@ -27,6 +27,12 @@ class MainActivity : AppCompatActivity() {
         binding.switchReels.setOnCheckedChangeListener { _, checked -> Prefs.setBlockReels(this, checked) }
         binding.switchShorts.setOnCheckedChangeListener { _, checked -> Prefs.setBlockShorts(this, checked) }
 
+        binding.switchDebug.isChecked = Prefs.debugMode(this)
+        binding.switchDebug.setOnCheckedChangeListener { _, checked -> Prefs.setDebugMode(this, checked) }
+        binding.openLogButton.setOnClickListener {
+            startActivity(Intent(this, LogActivity::class.java))
+        }
+
         binding.pauseButton.setOnClickListener {
             if (Prefs.isPaused(this)) Prefs.resume(this) else Prefs.pause(this)
             refresh()

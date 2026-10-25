@@ -10,4 +10,11 @@
     <string name="resume_button">Reprendre le blocage</string>
     <string name="paused_until">Blocage en pause jusqu\'à %1$s</string>
     <string name="stats">Blocages : %1$d aujourd\'hui, %2$d au total</string>
+    <string name="debug_mode">Mode debug (journal)</string>
+    <string name="open_log">Journal</string>
+    <string name="log_refresh">Rafraîchir</string>
+    <string name="log_copy">Copier</string>
+    <string name="log_clear">Vider</string>
+    <string name="log_copied">Journal copié</string>
+    <string name="log_empty">(journal vide : active le mode debug puis ouvre Instagram ou YouTube)</string>
 </resources>

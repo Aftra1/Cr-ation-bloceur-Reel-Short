@@ -17,6 +17,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"
+            android:label="@string/open_log" />
+
         <service
             android:name=".NoScrollService"
             android:exported="false"

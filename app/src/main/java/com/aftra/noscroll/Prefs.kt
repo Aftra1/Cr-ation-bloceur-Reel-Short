@@ -13,6 +13,7 @@ object Prefs {
     private const val KEY_TOTAL = "blocks_total"
     private const val KEY_DAY = "blocks_day"
     private const val KEY_DAY_COUNT = "blocks_day_count"
+    private const val KEY_DEBUG = "debug_mode"
 
     const val PAUSE_MINUTES = 15
 
@@ -27,6 +28,11 @@ object Prefs {
 
     fun setBlockShorts(context: Context, value: Boolean) =
         prefs(context).edit().putBoolean(KEY_SHORTS, value).apply()
+
+    fun debugMode(context: Context) = prefs(context).getBoolean(KEY_DEBUG, false)
+
+    fun setDebugMode(context: Context, value: Boolean) =
+        prefs(context).edit().putBoolean(KEY_DEBUG, value).apply()
 
     // Pause temporaire
     fun pausedUntil(context: Context) = prefs(context).getLong(KEY_PAUSED_UNTIL, 0L)
