@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"
     android:description="@string/service_description"
-    android:notificationTimeout="100"
-    android:packageNames="com.instagram.android,com.google.android.youtube" />
+    android:isAccessibilityTool="true"
+    android:notificationTimeout="100" />
+<!-- isAccessibilityTool : depuis Android 14, les vues marquées « sensibles » sont cachées
+     aux services qui ne sont pas des outils d'accessibilité (seul le Play Store vérifie ce statut).
+     Pas de packageNames : sur MIUI, ce filtre laisse le cache des fenêtres périmé
+     (rootInActiveWindow reste sur le launcher). Le filtrage est fait dans le code. -->

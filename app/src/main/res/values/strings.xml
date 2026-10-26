@@ -1,4 +1,32 @@
 <resources>
     <string name="app_name">NoScroll</string>
     <string name="service_description">Bloque les Reels Instagram et les Shorts YouTube.</string>
+    <string name="status_enabled">Service activé ✅</string>
+    <string name="status_disabled">Service désactivé ❌</string>
+    <string name="status_stopped">Service arrêté par le système ⚠️\nDésactive puis réactive NoScroll dans les réglages d\'accessibilité. Pour éviter ça : ne balaie pas NoScroll dans les apps récentes, et autorise le démarrage automatique.</string>
+    <string name="open_accessibility_settings">Ouvrir les réglages d\'accessibilité</string>
+    <string name="block_reels">Bloquer les Reels (Instagram)</string>
+    <string name="block_shorts">Bloquer les Shorts (YouTube)</string>
+    <string name="pause_button">Pause 15 min</string>
+    <string name="resume_button">Reprendre le blocage</string>
+    <string name="paused_until">Blocage en pause jusqu\'à %1$s</string>
+    <string name="stats">Blocages : %1$d aujourd\'hui, %2$d au total</string>
+    <string name="debug_mode">Mode debug (journal)</string>
+    <string name="open_log">Journal</string>
+    <string name="log_refresh">Rafraîchir</string>
+    <string name="log_copy">Copier</string>
+    <string name="log_clear">Vider</string>
+    <string name="log_copied">Journal copié</string>
+    <string name="log_empty">(journal vide : active le mode debug puis ouvre Instagram ou YouTube)</string>
+    <string name="overlay_title">Ne perds pas ton temps ⏳</string>
+    <string name="overlay_subtitle_reels">Les Reels sont bloqués. Le son est coupé.</string>
+    <string name="overlay_subtitle_shorts">Les Shorts sont bloqués. Le son est coupé.</string>
+    <string name="overlay_leave">Quitter</string>
+    <string name="gray_title">Mode Noir &amp; Blanc</string>
+    <string name="gray_perm_granted">Permission Noir &amp; Blanc : accordée ✅</string>
+    <string name="gray_perm_missing">Permission Noir &amp; Blanc : non accordée ❌</string>
+    <string name="gray_copy">Copier la commande</string>
+    <string name="gray_copied">Commande copiée</string>
+    <string name="gray_help">Pour passer l\'écran en niveaux de gris, NoScroll doit pouvoir modifier un réglage système protégé. Android n\'accorde ce droit que par ADB, une seule fois (il reste accordé tant que l\'app n\'est pas désinstallée) :\n\n1. Active les Options pour les développeurs puis le Débogage USB.\n2. Branche le téléphone à un ordinateur et lance :</string>
+    <string name="gray_help_no_pc">Sans ordinateur : active le Débogage sans fil (Options pour les développeurs), puis lance la même commande depuis une app ADB locale comme LADB ou Shizuku + un terminal, sans le préfixe « adb shell ».\n\nReviens ensuite sur cet écran : l\'état doit passer à « accordée ».</string>
 </resources>
