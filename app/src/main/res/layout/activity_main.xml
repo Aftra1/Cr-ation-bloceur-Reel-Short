@@ -69,5 +69,18 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:text="@string/open_log" />
+
+    <Button
+        android:id="@+id/openGrayscaleButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="@string/gray_title" />
+
+    <TextView
+        android:id="@+id/grayscaleStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
 </LinearLayout>
 </ScrollView>

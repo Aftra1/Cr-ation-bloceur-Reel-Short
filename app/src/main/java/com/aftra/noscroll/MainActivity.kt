@@ -31,6 +31,9 @@ class MainActivity : AppCompatActivity() {
         binding.openLogButton.setOnClickListener {
             startActivity(Intent(this, LogActivity::class.java))
         }
+        binding.openGrayscaleButton.setOnClickListener {
+            startActivity(Intent(this, GrayscaleActivity::class.java))
+        }
 
         binding.pauseButton.setOnClickListener {
             if (Prefs.isPaused(this)) Prefs.resume(this) else Prefs.pause(this)
@@ -61,6 +64,10 @@ class MainActivity : AppCompatActivity() {
         binding.pauseStatusText.text = if (paused) {
             getString(R.string.paused_until, DateFormat.getTimeFormat(this).format(Date(Prefs.pausedUntil(this))))
         } else ""
+
+        binding.grayscaleStatus.setText(
+            if (Grayscale.hasPermission(this)) R.string.gray_perm_granted else R.string.gray_perm_missing
+        )
 
         binding.statsText.text = getString(R.string.stats, Prefs.blocksToday(this), Prefs.blocksTotal(this))
     }

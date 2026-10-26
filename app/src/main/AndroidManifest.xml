@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Mode Noir & Blanc : accordée une seule fois via ADB (pm grant). -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:name=".NoScrollApp"
@@ -18,6 +24,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".GrayscaleActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/gray_title" />
 
         <activity
             android:name=".LogActivity"
